@@ -23,10 +23,13 @@ class AuthController extends Controller
             'password' => Hash::make($data['password']),
         ]);
 
+        $user->sendEmailVerificationNotification();
+
         // Cria um token imediatamente (ou você pode exigir verificação de e-mail antes)
         $token = $user->createToken($request->ip() . ' | API')->plainTextToken;
 
         return response()->json([
+            'message' => 'Usuário registrado com sucesso. Verifique seu e-mail para confirmar.',
             'user'  => new UserResource($user),
             'token' => $token,
             'token_type' => 'Bearer',

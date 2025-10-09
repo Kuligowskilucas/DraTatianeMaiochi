@@ -3,11 +3,14 @@
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Gate;
 
 class AuthServiceProvider
 {
     public function boot(): void
     {
+        Gate::define('admin', fn($user) => $user->role === 'admin');
+        
         VerifyEmail::createUrlUsing(function ($notifiable) {
             $temporarySignedURL = URL::temporarySignedRoute(
                 'verification.verify',

@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
+    // Registro de novo usuário
     public function register(RegisterRequest $request)
     {
         $data = $request->validated();
@@ -36,6 +37,7 @@ class AuthController extends Controller
         ], Response::HTTP_CREATED);
     }
 
+    // Login e criação de token
     public function login(LoginRequest $request)
     {
         $data = $request->validated();
@@ -62,11 +64,13 @@ class AuthController extends Controller
         ]);
     }
 
+    // Retorna dados do usuário autenticado
     public function me(Request $request)
     {
         return new UserResource($request->user());
     }
 
+    // Logout do token atual
     public function logout(Request $request)
     {
         // Revoga apenas o token usado nesta requisição
@@ -74,6 +78,7 @@ class AuthController extends Controller
         return response()->json(['message' => 'Logout efetuado.']);
     }
 
+    // Logout de todas as sessões (revoga todos os tokens do usuário)
     public function logoutAll(Request $request)
     {
         $request->user()->tokens()->delete();

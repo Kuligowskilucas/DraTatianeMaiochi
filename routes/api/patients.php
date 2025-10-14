@@ -7,9 +7,6 @@ use App\Http\Controllers\MedicalHistoryController;
 Route::prefix('patients')->name('patients.')
     ->middleware('auth:sanctum')
     ->group(function () {
-        Route::get('/',            [PatientController::class, 'index'])
-            ->middleware('permission:patients.view')->name('index');
-
         Route::post('/',           [PatientController::class, 'store'])
             ->middleware('permission:patients.create')->name('store');
 

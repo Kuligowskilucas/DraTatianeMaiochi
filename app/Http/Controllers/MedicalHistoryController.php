@@ -10,7 +10,14 @@ use App\Models\MedicalHistory;
 class MedicalHistoryController extends Controller
 {
     use \Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+
+    // Mostra detalhes de um histórico médico
+    public function show(MedicalHistory $history) {
+            $this->authorize('view', $history);
+            return response()->json($history);
+        }
     
+    // Cria um novo registro no histórico médico do paciente
     public function store(Request $request, Patient $patient)
     {
         $this->authorize('createHistory', [MedicalHistory::class, $patient]);
@@ -28,4 +35,14 @@ class MedicalHistoryController extends Controller
         ]);
         return response()->json($history, 201);
     }
+
+    // Lista históricos médicos de um paciente
+    public function myHistories(Patient $patient)
+    {
+        $this->authorize('viewAny', [MedicalHistory::class, $patient]);
+        $items = MedicalHistory::where('patient_id',$patient->id)
+            ->orderBy('created_at','desc')->paginate(20);
+        return response()->json($items);
+    }
+
 }

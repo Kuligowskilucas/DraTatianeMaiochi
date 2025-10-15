@@ -11,6 +11,14 @@ use Carbon\Carbon;
 
 class AppointmentController extends Controller
 {
+    // Mostra detalhes de uma consulta
+    public function show(Appointment $appointment)
+    {
+        $appointment->load(['patient.user','doctor.user','clinic']);
+        return response()->json($appointment);
+    }
+
+    // Cria uma nova consulta
     public function store(StoreAppointmentRequest $request)
     {
         $data = $request->validated();
@@ -28,6 +36,7 @@ class AppointmentController extends Controller
          }
     }
 
+    // Confirma presença do paciente na consulta
     public function confirm(Request $request, Appointment $appointment)
     {
         $user = $request->user();
@@ -41,6 +50,7 @@ class AppointmentController extends Controller
         return response()->json(['message'=>'Presença confirmada.']);
     }
 
+    // Lista consultas do paciente logado 
     public function MyAppointments(Request $request)
     {
         $patient = Patient::where('user_id',$request->user()->id)->firstOrFail();

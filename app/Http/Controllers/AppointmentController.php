@@ -11,6 +11,14 @@ use Carbon\Carbon;
 
 class AppointmentController extends Controller
 {
+
+    // Lista todas as consultas
+    public function index()
+    {
+        $appointments = Appointment::all();
+        return response()->json($appointments);
+    }
+
     // Mostra detalhes de uma consulta
     public function show(Appointment $appointment)
     {
@@ -23,17 +31,48 @@ class AppointmentController extends Controller
     {
         $data = $request->validated();
 
-         if ($data['doctor_id'] ?? null) {
-                $overlap = Appointment::where('doctor_id', $data['doctor_id'])
-                ->where('status','!=','CANCELLED')
+        // Verifica conflito de agenda para o médico
+        $overlap = Appointment::where('doctor_id', $data['doctor_id'])
+            ->where('status', '!=', 'CANCELLED')
+            ->whereBetween('starts_at', [
+                Carbon::parse($data['starts_at'])->subMinutes($data['duration_minutes'] ?? 50),
+                Carbon::parse($data['starts_at'])->addMinutes($data['duration_minutes'] ?? 50),
+            ])->exists();
+        if ($overlap) {
+            return response()->json(['message' => 'Conflito de agenda para o médico.'], 422);
+        }
+
+        $appointment = Appointment::create($data);
+        return response()->json($appointment, 201);
+    }
+
+    // Atualiza uma consulta
+    public function update(StoreAppointmentRequest $request, Appointment $appointment)
+    {
+        $data = $request->validated();
+
+        if ($data['doctor_id'] ?? null) {
+            $overlap = Appointment::where('doctor_id', $data['doctor_id'])
+                ->where('id', '!=', $appointment->id)
+                ->where('status', '!=', 'CANCELLED')
                 ->whereBetween('starts_at', [
                     Carbon::parse($data['starts_at'])->subMinutes($data['duration_minutes'] ?? 50),
                     Carbon::parse($data['starts_at'])->addMinutes($data['duration_minutes'] ?? 50),
                 ])->exists();
             if ($overlap) {
-                return response()->json(['message'=>'Conflito de agenda para o médico.'], 422);
+                return response()->json(['message' => 'Conflito de agenda para o médico.'], 422);
             }
-         }
+        }
+
+        $appointment->update($data);
+        return response()->json($appointment);
+    }
+
+    // Deleta uma consulta
+    public function destroy(Appointment $appointment)
+    {
+        $appointment->delete();
+        return response()->json(null, 204);
     }
 
     // Confirma presença do paciente na consulta

@@ -15,6 +15,14 @@ class PatientController extends Controller
         return response()->json($patient, 201);
     }
 
+
+    // Lista todos os pacientes
+    public function index()
+    {
+        $patients = Patient::all();
+        return response()->json($patients);
+    }
+
     // Mostra detalhes de um paciente
     public function show(Patient $patient)
     {

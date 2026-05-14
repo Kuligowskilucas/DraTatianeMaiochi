@@ -3,131 +3,190 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\User;
+use App\Http\Requests\User\StoreUserRequest;
+use App\Http\Requests\User\UpdateUserRequest;
+use App\Http\Resources\UserResource;
 use App\Models\Patient;
+use App\Models\User;
+use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
+    // ==================== CRUD ====================
 
-    // ==== CRUD de Usuários (admin, secretaria, paciente) ====
-
-    // Cria um novo usuário (admin, secretaria ou paciente)
-    public function store(Request $request)
+    public function index(Request $request)
     {
-        $data = $request->validate([
-            'name'=>['required','string','max:255'],
-            'email'=>['required','email','max:255','unique:users,email'],
-            'password'=>['required','string','min:8','confirmed'],
-            'roles'=>['required','array'], // ['admin'] ou ['secretary'] ou ['patient']
-            'roles.*'=>['string','in:admin,secretary,patient'],
-        ]);
-        
-         $user = User::create([
-            'name'=>$data['name'],
-            'email'=>$data['email'],
-            'password'=>$data['password'],
-        ]);
-        $user->syncRoles($data['roles']);
+        $query = User::query()->with(['roles.permissions', 'permissions']);
 
-        // se for paciente com acesso ao portal, opcionalmente já cria o Patient vinculado
-        if (in_array('patient',$data['roles'], true)) {
-            Patient::firstOrCreate(['user_id'=>$user->id], ['name'=>$user->name,'email'=>$user->email]);
+        // Busca por nome ou email
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
         }
 
-        return response()->json($user, 201);
-    }
+        // Filtro por role (admin, secretary, patient)
+        if ($role = $request->input('role')) {
+            $query->whereHas('roles', fn ($q) => $q->where('name', $role));
+        }
 
-    // Mostra detalhes de um usuário
-    public function show(Request $request, User $user)
-    {
-        $request->user()->can('view', $user);
-        return response()->json($user);
-    }
+        // Filtro por status (?is_active=1 ou ?is_active=0)
+        if ($request->has('is_active')) {
+            $isActive = filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN);
+            $query->where('is_active', $isActive);
+        }
 
-    // Atualiza dados de um usuário
-    public function update(Request $request, User $user)
-    {
-        $request->user()->can('update', $user);
-        $data = $request->validate([
-            'name'=>['sometimes','required','string','max:255'],
-            'email'=>['sometimes','required','email','max:255','unique:users,email,'.$user->id],
-            'password'=>['sometimes','required','string','min:8','confirmed'],
+        $limit = min((int) $request->input('limit', 10), 100);
+        $users = $query->orderBy('name')->paginate($limit);
+
+        return response()->json([
+            'data'       => UserResource::collection($users),
+            'pagination' => [
+                'page'       => $users->currentPage(),
+                'limit'      => $users->perPage(),
+                'total'      => $users->total(),
+                'totalPages' => $users->lastPage(),
+                'hasNext'    => $users->hasMorePages(),
+                'hasPrev'    => $users->currentPage() > 1,
+            ],
         ]);
-        $user->update($data);
-        return response()->json($user);
     }
 
-    // Deleta um usuário
+    public function store(StoreUserRequest $request)
+    {
+        $data = $request->validated();
+
+        $user = User::create([
+            'name'      => $data['name'],
+            'email'     => $data['email'],
+            'password'  => $data['password'], // cast 'hashed' faz o hash
+            'is_active' => $data['is_active'] ?? true,
+        ]);
+
+        $user->syncRoles($data['roles']);
+
+        // Usuário criado por admin já entra com e-mail verificado.
+        // Se quiser exigir verificação por e-mail, remova esta linha.
+        $user->markEmailAsVerified();
+
+        // Se for paciente, garante registro de Patient atrelado
+        if (in_array('patient', $data['roles'], true)) {
+            Patient::firstOrCreate(
+                ['user_id' => $user->id],
+                ['name'    => $user->name, 'email' => $user->email]
+            );
+        }
+
+        $user->load(['roles.permissions', 'permissions']);
+
+        return (new UserResource($user))
+            ->response()
+            ->setStatusCode(201);
+    }
+
+    public function show(User $user)
+    {
+        $user->load(['roles.permissions', 'permissions']);
+        return new UserResource($user);
+    }
+
+    public function update(UpdateUserRequest $request, User $user)
+    {
+        $user->update($request->validated());
+        $user->load(['roles.permissions', 'permissions']);
+        return new UserResource($user);
+    }
+
     public function destroy(Request $request, User $user)
     {
-        $request->user()->can('delete', $user);
+        // Não permite admin se auto-deletar (lockout)
+        abort_if(
+            $request->user()->id === $user->id,
+            403,
+            'Você não pode deletar a própria conta.'
+        );
+
         $user->delete();
         return response()->json(null, 204);
     }
 
-    // ==== Papéis e Roles de User ====
+    // ==================== Roles e Permissões ====================
 
-    // Sincroniza papéis (roles) de um usuário
-    public function syncRoles(Request $request, User $user)
+    public function assignRole(Request $request, User $user)
     {
-        $request->user()->can('update', $user);
+        abort_if(
+            $request->user()->id === $user->id,
+            403,
+            'Você não pode alterar as próprias roles.'
+        );
+
         $data = $request->validate([
-            'roles'=>['required','array'], // ['admin'] ou ['secretary'] ou ['patient']
-            'roles.*'=>['string','in:admin,secretary,patient'],
+            'roles'   => ['required', 'array'],
+            'roles.*' => ['string', 'in:admin,secretary,patient'],
         ]);
+
         $user->syncRoles($data['roles']);
-        return response()->json($user->roles);
+
+        // Se virou paciente, garante Patient atrelado
+        if (in_array('patient', $data['roles'], true)) {
+            Patient::firstOrCreate(
+                ['user_id' => $user->id],
+                ['name'    => $user->name, 'email' => $user->email]
+            );
+        }
+
+        $user->load(['roles.permissions', 'permissions']);
+        return new UserResource($user);
     }
 
-    // Sincroniza permissões diretas de um usuário
-    public function syncPermissions(Request $request, User $user)
+    public function givePermission(Request $request, User $user)
     {
-        $request->user()->can('update', $user);
         $data = $request->validate([
-            'permissions'=>['required','array'],
-            'permissions.*'=>['string','exists:permissions,name'],
+            'permissions'   => ['required', 'array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
+
         $user->syncPermissions($data['permissions']);
-        return response()->json($user->permissions);
+
+        $user->load(['roles.permissions', 'permissions']);
+        return new UserResource($user);
     }
 
-    // Reset de senha (admin define nova)
-    public function resetPassword(Request $request, User $user)
+    public function changePassword(Request $request, User $user)
     {
-        $request->user()->can('update', $user);
         $data = $request->validate([
-            'password'=>['required','string','min:8','confirmed'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
-        $user->update(['password'=>$data['password']]);
-        return response()->json(['message'=>'Senha atualizada.']);
-    }
 
-    // ==== Ativar/Desativar usuário ====   
-    public function toggleStatus(Request $request, User $user)
-    {
-        $request->user()->can('update', $user);
-        $user->is_active = !$user->is_active;
-        $user->save();
-        return response()->json(['is_active'=>$user->is_active]);
-    }
+        $user->update(['password' => $data['password']]); // cast 'hashed' hasheia
 
-    // ==== Tokens (Sanctum) — listar e revogar ====
-    
-    // Lista tokens ativos de um usuário
-    public function tokensIndex(Request $request, User $user)
-    {
-        $request->user()->can('view', $user);
-        $tokens = $user->tokens()->get(['id','name','last_used_at','created_at']);
-        return response()->json($tokens);
-    }
-
-    // Revoga todos os tokens de um usuário
-    public function tokensRevokeAll(Request $request, User $user)
-    {
-        $request->user()->can('update', $user);
+        // Por segurança, revoga tokens existentes do usuário após troca de senha
         $user->tokens()->delete();
-        return response()->json(['message'=>'Todos os tokens revogados.']);
+
+        return response()->json(['message' => 'Senha atualizada.']);
     }
 
+    public function changeStatus(Request $request, User $user)
+    {
+        abort_if(
+            $request->user()->id === $user->id,
+            403,
+            'Você não pode alterar o status da própria conta.'
+        );
+
+        $data = $request->validate([
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $user->update(['is_active' => $data['is_active']]);
+
+        // Se desativou, revoga tokens pra forçar logout
+        if (! $data['is_active']) {
+            $user->tokens()->delete();
+        }
+
+        $user->load(['roles.permissions', 'permissions']);
+        return new UserResource($user);
+    }
 }

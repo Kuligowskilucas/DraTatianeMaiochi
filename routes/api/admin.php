@@ -11,13 +11,13 @@ Route::prefix('admin')
         // CRUD de usuários
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
-        Route::get('/users/{id}', [UserController::class, 'show'])->name('users.show');
-        Route::put('/users/{id}', [UserController::class, 'update'])->name('users.update');
-        Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
+        Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
         // Papéis e permissões
-        Route::post('/users/{id}/roles', [UserController::class, 'assignRole'])->name('users.assignRole');
-        Route::post('/users/{id}/permissions', [UserController::class, 'givePermission'])->name('users.givePermission');
-        Route::post('/users/{id}/password', [UserController::class, 'changePassword'])->name('users.changePassword');
-        Route::patch('/users/{id}/status', [UserController::class, 'changeStatus'])->name('users.changeStatus');
+        Route::post('/users/{user}/roles', [UserController::class, 'assignRole'])->name('users.assignRole');
+        Route::post('/users/{user}/permissions', [UserController::class, 'givePermission'])->name('users.givePermission');
+        Route::post('/users/{user}/password', [UserController::class, 'changePassword'])->name('users.changePassword');
+        Route::patch('/users/{user}/status', [UserController::class, 'changeStatus'])->name('users.changeStatus');
     });

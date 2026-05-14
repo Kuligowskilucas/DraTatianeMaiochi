@@ -10,11 +10,12 @@ class UserResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'    => $this->id,
-            'name'  => $this->name,
-            'email' => $this->email,
-            // adicione campos públicos que você quiser expor
-            'created_at' => $this->created_at?->toISOString(),
+            'id'        => $this->id,
+            'name'      => $this->name,
+            'email'     => $this->email,
+            'role'      => $this->getRoleNames()->first(),
+            'createdAt' => $this->created_at?->toISOString(),
+            'updatedAt' => $this->updated_at?->toISOString(),
         ];
     }
 }

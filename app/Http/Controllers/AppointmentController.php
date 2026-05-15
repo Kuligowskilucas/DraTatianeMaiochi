@@ -30,6 +30,15 @@ class AppointmentController extends Controller
             $query->where('status', strtoupper($status));
         }
 
+        $user = $request->user();
+        if (
+            $user->hasRole('doctor')
+            && ! $user->hasRole('admin')
+            && ! $user->hasRole('secretary')
+        ) {
+            $query->where('doctor_id', $user->id);
+        }
+
         $limit = min((int) $request->input('limit', 10), 100);
         $items = $query->orderBy('starts_at', 'desc')->paginate($limit);
 
@@ -74,7 +83,6 @@ class AppointmentController extends Controller
     {
         $data = $request->validated();
 
-        // Checa conflito só se mudou médico ou horário
         if ((isset($data['doctor_id']) || isset($data['starts_at'])) && ($data['status'] ?? null) !== 'CANCELLED') {
             $doctorId = $data['doctor_id'] ?? $appointment->doctor_id;
             $startsAt = $data['starts_at'] ?? $appointment->starts_at;
@@ -148,7 +156,6 @@ class AppointmentController extends Controller
         ]);
     }
 
-    // Helper privado para checar conflito de agenda
     private function hasConflict($doctorId, $startsAt, $duration, $excludeId = null): bool
     {
         if (!$doctorId) return false;

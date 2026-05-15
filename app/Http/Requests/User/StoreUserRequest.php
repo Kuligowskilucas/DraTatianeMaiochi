@@ -19,7 +19,7 @@ class StoreUserRequest extends FormRequest
             'email'     => ['required', 'email', 'max:255', 'unique:users,email'],
             'password'  => ['required', 'string', 'min:8', 'confirmed'],
             'roles'     => ['required', 'array', 'min:1'],
-            'roles.*'   => ['string', 'in:admin,secretary,patient'],
+            'roles.*'   => ['string', 'in:admin,secretary,patient,doctor'],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }
@@ -29,7 +29,7 @@ class StoreUserRequest extends FormRequest
         return [
             'roles.required'     => 'Selecione ao menos uma role.',
             'roles.min'          => 'Selecione ao menos uma role.',
-            'roles.*.in'         => 'Role inválida. Use admin, secretary ou patient.',
+            'roles.*.in'         => 'Role inválida. Use admin, secretary, doctor ou patient.',
             'password.confirmed' => 'A confirmação de senha não confere.',
             'email.unique'       => 'Este e-mail já está em uso.',
         ];

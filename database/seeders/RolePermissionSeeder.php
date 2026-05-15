@@ -20,17 +20,27 @@ class RolePermissionSeeder extends Seeder
         ];
         foreach ($perms as $p) Permission::firstOrCreate(['name' => $p]);
 
-        $admin = Role::firstOrCreate(['name' => 'admin']);
+        $admin     = Role::firstOrCreate(['name' => 'admin']);
         $secretary = Role::firstOrCreate(['name' => 'secretary']);
-        $patient = Role::firstOrCreate(['name' => 'patient']);
+        $doctor    = Role::firstOrCreate(['name' => 'doctor']);     // ← novo
+        $patient   = Role::firstOrCreate(['name' => 'patient']);
 
         $admin->givePermissionTo(Permission::all());
 
         $secretary->givePermissionTo([
-            'patients.view','patients.create','patients.update',
-            'appointments.view','appointments.create','appointments.update'
+            'patients.view', 'patients.create', 'patients.update',
+            'appointments.view', 'appointments.create', 'appointments.update',
         ]);
 
-        // Paciente não precisa permissão geral; controlamos por Policy (somente “próprias”)
+        // Doctor: visão clínica, sem gestão administrativa            // ← novo
+        $doctor->givePermissionTo([
+            'patients.view',
+            'appointments.view',
+            'appointments.update',
+            'history.view',
+            'history.create',
+        ]);
+
+        // Paciente: controlado por Policy (somente "próprias")
     }
 }

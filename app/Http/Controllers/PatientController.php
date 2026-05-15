@@ -25,6 +25,18 @@ class PatientController extends Controller
             });
         }
 
+        $user = $request->user();
+        if (
+            $user->hasRole('doctor')
+            && ! $user->hasRole('admin')
+            && ! $user->hasRole('secretary')
+        ) {
+            $patientIds = \App\Models\Appointment::where('doctor_id', $user->id)
+                ->pluck('patient_id')
+                ->unique();
+            $query->whereIn('id', $patientIds);
+        }
+
         $limit = min((int) $request->input('limit', 10), 100);
         $patients = $query->orderBy('name')->paginate($limit);
 

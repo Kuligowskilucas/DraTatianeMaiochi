@@ -13,6 +13,7 @@ class UserResource extends JsonResource
             'id'              => $this->id,
             'name'            => $this->name,
             'email'           => $this->email,
+            'phone'           => $this->phone,
             'emailVerifiedAt' => $this->email_verified_at?->toISOString(),
             'isActive'        => (bool) $this->is_active,
 

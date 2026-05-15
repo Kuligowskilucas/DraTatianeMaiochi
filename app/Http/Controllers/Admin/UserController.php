@@ -123,7 +123,7 @@ class UserController extends Controller
 
         $data = $request->validate([
             'roles'   => ['required', 'array'],
-            'roles.*' => ['string', 'in:admin,secretary,patient'],
+            'roles.*' => ['string', 'in:admin,secretary,patient,doctor'],
         ]);
 
         $user->syncRoles($data['roles']);

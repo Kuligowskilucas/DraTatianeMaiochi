@@ -8,7 +8,8 @@ class DoctorController extends Controller
 {
     public function index()
     {
-        $doctors = User::role('admin')
+        $doctors = User::role('doctor')             
+            ->where('is_active', true)              
             ->orderBy('name')
             ->get(['id', 'name', 'email']);
 

@@ -12,5 +12,6 @@ require __DIR__.'/api/appointments.php';
 require __DIR__.'/api/me.php';
 require __DIR__.'/api/verified.php'; 
 require __DIR__.'/api/doctor.php'; 
+require __DIR__.'/api/medical-records.php'; 
 
 

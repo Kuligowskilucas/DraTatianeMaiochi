@@ -12,17 +12,20 @@ class RolePermissionSeeder extends Seeder
     {
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
+        Permission::whereIn('name', ['history.view', 'history.create'])->delete();
+
         $perms = [
             'patients.view', 'patients.create', 'patients.update', 'patients.delete',
             'appointments.view', 'appointments.create', 'appointments.update', 'appointments.delete',
-            'history.view', 'history.create',
+            'medical_records.view', 'medical_records.create',
+            'medical_records.update', 'medical_records.delete',
             'users.view', 'users.create', 'users.update', 'users.delete',
         ];
         foreach ($perms as $p) Permission::firstOrCreate(['name' => $p]);
 
         $admin     = Role::firstOrCreate(['name' => 'admin']);
         $secretary = Role::firstOrCreate(['name' => 'secretary']);
-        $doctor    = Role::firstOrCreate(['name' => 'doctor']);     // ← novo
+        $doctor    = Role::firstOrCreate(['name' => 'doctor']);
         $patient   = Role::firstOrCreate(['name' => 'patient']);
 
         $admin->givePermissionTo(Permission::all());
@@ -32,15 +35,13 @@ class RolePermissionSeeder extends Seeder
             'appointments.view', 'appointments.create', 'appointments.update',
         ]);
 
-        // Doctor: visão clínica, sem gestão administrativa            // ← novo
-        $doctor->givePermissionTo([
+        $doctor->syncPermissions([
             'patients.view',
             'appointments.view',
             'appointments.update',
-            'history.view',
-            'history.create',
+            'medical_records.view',
+            'medical_records.create',
+            'medical_records.update',
         ]);
-
-        // Paciente: controlado por Policy (somente "próprias")
     }
 }

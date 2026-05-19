@@ -2,7 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PatientController;
-use App\Http\Controllers\MedicalHistoryController;
 
 Route::prefix('patients')->name('patients.')
     ->middleware('auth:sanctum')
@@ -21,11 +20,4 @@ Route::prefix('patients')->name('patients.')
 
         Route::delete('/{patient}', [PatientController::class, 'destroy'])
             ->middleware('permission:patients.delete')->name('destroy');
-
-        // Histórico clínico
-        Route::get('/{patient}/medical-history', [MedicalHistoryController::class, 'index'])
-            ->middleware('permission:history.view')->name('history.index');
-
-        Route::post('/{patient}/medical-history', [MedicalHistoryController::class, 'store'])
-            ->middleware('permission:history.create')->name('history.store');
     });

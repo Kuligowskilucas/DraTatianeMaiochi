@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Appointment;
-use App\Models\MedicalHistory;
+use App\Models\MedicalRecord;                                
 
 class Patient extends Model
 {
@@ -16,6 +16,5 @@ class Patient extends Model
 
     public function user(){ return $this->belongsTo(User::class); }
     public function appointments(){ return $this->hasMany(Appointment::class); }
-    public function histories(){ return $this->hasMany(MedicalHistory::class); }
+    public function medicalRecord(){ return $this->hasOne(MedicalRecord::class); }  
 }
-

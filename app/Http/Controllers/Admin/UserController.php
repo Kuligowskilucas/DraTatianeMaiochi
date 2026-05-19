@@ -127,14 +127,24 @@ class UserController extends Controller
             'roles.*' => ['string', 'in:admin,secretary,patient,doctor'],
         ]);
 
+        $hadPatient  = $user->hasRole('patient');
+        $willPatient = in_array('patient', $data['roles'], true);
+
         $user->syncRoles($data['roles']);
 
-        // Se virou paciente, garante Patient atrelado
-        if (in_array('patient', $data['roles'], true)) {
-            Patient::firstOrCreate(
-                ['user_id' => $user->id],
-                ['name'    => $user->name, 'email' => $user->email]
-            );
+        if ($willPatient && ! $hadPatient) {
+            $patient = Patient::withTrashed()
+                ->firstOrCreate(
+                    ['user_id' => $user->id],
+                    ['name' => $user->name, 'email' => $user->email]
+                );
+            if ($patient->trashed()) {
+                $patient->restore();
+            }
+        }
+    
+        if ($hadPatient && ! $willPatient) {
+            Patient::where('user_id', $user->id)->delete();
         }
 
         $user->load(['roles.permissions', 'permissions']);

@@ -16,6 +16,7 @@ class UserResource extends JsonResource
             'phone'           => $this->phone,
             'emailVerifiedAt' => $this->email_verified_at?->toISOString(),
             'isActive'        => (bool) $this->is_active,
+            'deletedAt'       => $this->deleted_at?->toISOString(),
 
             'role'            => $this->getRoleNames()->first(),
 

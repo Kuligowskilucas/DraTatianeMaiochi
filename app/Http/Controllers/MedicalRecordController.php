@@ -6,6 +6,7 @@ use App\Http\Resources\MedicalRecordResource;
 use App\Models\MedicalRecord;
 use App\Models\Patient;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Request;
 
 class MedicalRecordController extends Controller
 {
@@ -23,5 +24,15 @@ class MedicalRecordController extends Controller
         $record->load('patient');
 
         return new MedicalRecordResource($record);
+    }
+
+    /**
+     * GET /api/me/medical-record
+     * Paciente vê o próprio prontuário sem precisar saber o próprio patient_id.
+     */
+    public function myRecord(Request $request)
+    {
+        $patient = Patient::where('user_id', $request->user()->id)->firstOrFail();
+        return $this->show($patient);
     }
 }

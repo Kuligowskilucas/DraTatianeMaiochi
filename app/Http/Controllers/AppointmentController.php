@@ -13,6 +13,8 @@ use Illuminate\Http\Request;
 
 class AppointmentController extends Controller
 {
+    use \Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+
     public function index(Request $request)
     {
         $query = Appointment::with(['patient', 'doctor']);
@@ -57,6 +59,7 @@ class AppointmentController extends Controller
 
     public function show(Appointment $appointment)
     {
+        $this->authorize('view', $appointment);
         $appointment->load(['patient', 'doctor']);
         return new AppointmentResource($appointment);
     }
@@ -81,6 +84,8 @@ class AppointmentController extends Controller
 
     public function update(UpdateAppointmentRequest $request, Appointment $appointment)
     {
+        $this->authorize('update', $appointment);
+
         $data = $request->validated();
 
         if ((isset($data['doctor_id']) || isset($data['starts_at'])) && ($data['status'] ?? null) !== 'CANCELLED') {
@@ -101,12 +106,15 @@ class AppointmentController extends Controller
 
     public function destroy(Appointment $appointment)
     {
+        $this->authorize('delete', $appointment);
         $appointment->delete();
         return response()->json(null, 204);
     }
 
     public function cancel(Appointment $appointment)
     {
+        $this->authorize('cancel', $appointment);
+
         if ($appointment->status === 'CANCELLED') {
             return response()->json(['message' => 'Consulta já está cancelada.'], 422);
         }
@@ -117,20 +125,15 @@ class AppointmentController extends Controller
 
     public function confirm(Request $request, Appointment $appointment)
     {
-        $user = $request->user();
-        abort_if(
-            !$user->hasRole('patient') || $appointment->patient?->user_id !== $user->id,
-            403,
-            'Apenas o paciente dono pode confirmar.'
-        );
-
+        $this->authorize('confirm', $appointment);
+    
         if ($appointment->status === 'CANCELLED') {
             return response()->json(['message' => 'Consulta cancelada não pode ser confirmada.'], 422);
         }
-
+    
         $appointment->update(['status' => 'CONFIRMED']);
         $appointment->load(['patient', 'doctor']);
-
+    
         return new AppointmentResource($appointment);
     }
 

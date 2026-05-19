@@ -31,7 +31,7 @@ class StoreUserRequest extends FormRequest
             'roles.min'          => 'Selecione ao menos uma role.',
             'roles.*.in'         => 'Role inválida. Use admin, secretary, doctor ou patient.',
             'password.confirmed' => 'A confirmação de senha não confere.',
-            'email.unique'       => 'Este e-mail já está em uso.',
+            'email.unique' => 'Este e-mail já está em uso. Se foi um usuário removido, restaure pela Lixeira.',
         ];
     }
 }

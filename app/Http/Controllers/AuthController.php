@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Auth\LoginRequest;
-use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -15,28 +14,6 @@ use App\Http\Requests\Auth\ChangeOwnPasswordRequest;
 
 class AuthController extends Controller
 {
-    public function register(RegisterRequest $request)
-    {
-        $data = $request->validated();
-
-        $user = User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'password' => Hash::make($data['password']),
-        ]);
-
-        $user->sendEmailVerificationNotification();
-
-        $token = $user->createToken($request->ip() . ' | API')->plainTextToken;
-
-        return response()->json([
-            'message'    => 'Usuário registrado com sucesso. Verifique seu e-mail.',
-            'user'       => new UserResource($user),
-            'token'      => $token,
-            'token_type' => 'Bearer',
-        ], Response::HTTP_CREATED);
-    }
-
     public function login(LoginRequest $request)
     {
         $data = $request->validated();

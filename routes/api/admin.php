@@ -8,12 +8,17 @@ Route::prefix('admin')
     ->middleware(['auth:sanctum', 'role:admin'])
     ->group(function () {
 
+        Route::get('/users/trash', [UserController::class, 'trash'])->name('users.trash');
+
         // CRUD de usuários
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+
+        Route::post('/users/{user}/restore', [UserController::class, 'restore'])->withTrashed()->name('users.restore');
+        Route::delete('/users/{user}/force', [UserController::class, 'forceDestroy'])->withTrashed()->name('users.forceDestroy');
 
         // Papéis e permissões
         Route::post('/users/{user}/roles', [UserController::class, 'assignRole'])->name('users.assignRole');

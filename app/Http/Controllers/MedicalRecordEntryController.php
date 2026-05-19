@@ -120,30 +120,40 @@ class MedicalRecordEntryController extends Controller
     }
 
     /**
- * GET /api/medical-record-entries/{entry}/activity
- * Histórico de alterações de uma entry.
- */
-public function activity(MedicalRecordEntry $entry)
-{
-    $this->authorize('view', $entry);
+     * GET /api/medical-record-entries/{entry}/activity
+     * Histórico de alterações de uma entry.
+     */
+    public function activity(MedicalRecordEntry $entry)
+    {
+        $this->authorize('view', $entry);
 
-    $activities = $entry->activities()
-        ->with('causer')
-        ->orderBy('created_at', 'desc')
-        ->get();
+        $activities = $entry->activities()
+            ->with('causer')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-    return response()->json([
-        'data' => $activities->map(fn ($a) => [
-            'id'          => $a->id,
-            'event'       => $a->description,                
-            'causerId'    => $a->causer_id,
-            'causerName'  => $a->causer?->name,
-            'changes'     => [
-                'attributes' => $a->properties->get('attributes', []),
-                'old'        => $a->properties->get('old', []),
-            ],
-            'createdAt'   => $a->created_at?->toISOString(),
-        ]),
-    ]);
-}
+        return response()->json([
+            'data' => $activities->map(fn ($a) => [
+                'id'          => $a->id,
+                'event'       => $a->description,                
+                'causerId'    => $a->causer_id,
+                'causerName'  => $a->causer?->name,
+                'changes'     => [
+                    'attributes' => $a->properties->get('attributes', []),
+                    'old'        => $a->properties->get('old', []),
+                ],
+                'createdAt'   => $a->created_at?->toISOString(),
+            ]),
+        ]);
+    }
+
+    /**
+     * GET /api/me/medical-record/entries
+     * Timeline do próprio paciente.
+     */
+    public function myEntries(Request $request)
+    {
+        $patient = Patient::where('user_id', $request->user()->id)->firstOrFail();
+        return $this->index($patient, $request);
+    }
 }

@@ -100,14 +100,15 @@ class UserController extends Controller
 
     public function destroy(Request $request, User $user)
     {
-        // Não permite admin se auto-deletar (lockout)
         abort_if(
-            $request->user()->id === $user->id,
-            403,
-            'Você não pode deletar a própria conta.'
+        $request->user()->id === $user->id,
+        403,
+        'Você não pode deletar a própria conta.'
         );
+    
+        $user->tokens()->delete();
 
-        $user->delete();
+        $user->delete(); 
         return response()->json(null, 204);
     }
 
@@ -188,5 +189,68 @@ class UserController extends Controller
 
         $user->load(['roles.permissions', 'permissions']);
         return new UserResource($user);
+    }
+
+    /**
+     * GET /api/admin/users/trash
+     * Lista paginada de usuários soft-deletados.
+     */
+    public function trash(Request $request)
+    {
+        $query = User::onlyTrashed()->with(['roles.permissions', 'permissions']);
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        $limit = min((int) $request->input('limit', 10), 100);
+        $users = $query->orderBy('deleted_at', 'desc')->paginate($limit);
+
+        return response()->json([
+            'data'       => UserResource::collection($users),
+            'pagination' => [
+                'page'       => $users->currentPage(),
+                'limit'      => $users->perPage(),
+                'total'      => $users->total(),
+                'totalPages' => $users->lastPage(),
+                'hasNext'    => $users->hasMorePages(),
+                'hasPrev'    => $users->currentPage() > 1,
+            ],
+        ]);
+    }
+
+    /**
+     * POST /api/admin/users/{user}/restore
+     * Restaura usuário soft-deletado.
+     */
+    public function restore(User $user)
+    {
+        if (! $user->trashed()) {
+            return response()->json(['message' => 'Usuário não está na lixeira.'], 422);
+        }
+    
+        $user->restore();
+        $user->load(['roles.permissions', 'permissions']);
+        return new UserResource($user);
+    }
+    
+    /**
+     * DELETE /api/admin/users/{user}/force
+     * Exclusão permanente. Irreversível.
+     */
+    public function forceDestroy(Request $request, User $user)
+    {
+        abort_if(
+            $request->user()->id === $user->id,
+            403,
+            'Você não pode deletar permanentemente a própria conta.'
+        );
+    
+        $user->tokens()->delete();
+        $user->forceDelete();
+        return response()->json(null, 204);
     }
 }

@@ -10,10 +10,11 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, Notifiable, HasRoles, SoftDeletes;
+    use HasApiTokens, Notifiable, HasRoles, SoftDeletes, HasFactory;
 
     /**
      * The attributes that are mass assignable.

@@ -19,11 +19,13 @@ class MedicalRecordController extends Controller
     public function show(Patient $patient)
     {
         $this->authorize('viewForPatient', [MedicalRecord::class, $patient]);
-
+    
         $record = $patient->medicalRecord()->firstOrCreate([]);
         $record->load('patient');
-
-        return new MedicalRecordResource($record);
+    
+        return (new MedicalRecordResource($record))
+            ->response()
+            ->setStatusCode(200);
     }
 
     /**

@@ -57,4 +57,9 @@ class MedicalRecordEntry extends Model
     {
         return $this->belongsTo(Appointment::class);
     }
+    public function attachments()
+    {
+        return $this->hasMany(MedicalRecordEntryAttachment::class)
+            ->orderBy('created_at');
+    }
 }

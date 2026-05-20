@@ -27,7 +27,7 @@ class MedicalRecordEntryController extends Controller
 
         $limit = min((int) $request->input('limit', 20), 100);
         $items = $record->entries()
-            ->with(['author', 'appointment'])
+            ->with(['author', 'appointment', 'attachments.uploadedBy'])
             ->paginate($limit);
 
         return response()->json([
@@ -80,7 +80,7 @@ class MedicalRecordEntryController extends Controller
             'confidential_notes' => $data['confidential_notes'] ?? null,
         ]);
 
-        $entry->load(['author', 'appointment']);
+        $entry->load(['author', 'appointment', 'attachments.uploadedBy']);
 
         return (new MedicalRecordEntryResource($entry))
             ->response()
@@ -93,7 +93,7 @@ class MedicalRecordEntryController extends Controller
     public function show(MedicalRecordEntry $entry)
     {
         $this->authorize('view', $entry);
-        $entry->load(['author', 'appointment']);
+        $entry->load(['author', 'appointment', 'attachments.uploadedBy']);
         return new MedicalRecordEntryResource($entry);
     }
 
@@ -104,7 +104,7 @@ class MedicalRecordEntryController extends Controller
     {
         $this->authorize('update', $entry);
         $entry->update($request->validated());
-        $entry->load(['author', 'appointment']);
+        $entry->load(['author', 'appointment', 'attachments.uploadedBy']);
         return new MedicalRecordEntryResource($entry);
     }
 

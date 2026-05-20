@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\MedicalRecordEntryAttachmentResource;
 
 class MedicalRecordEntryResource extends JsonResource
 {
@@ -11,8 +12,6 @@ class MedicalRecordEntryResource extends JsonResource
     {
         $user = $request->user();
 
-        // confidential_notes só visíveis pra admin ou autor da entry.
-        // Outros doctors veem a entry mas a chave nem aparece no JSON.
         $canSeeConfidential = $user && (
             $user->hasRole('admin') || $user->id === $this->author_id
         );
@@ -34,6 +33,10 @@ class MedicalRecordEntryResource extends JsonResource
             'plan'              => $this->plan,
             'confidentialNotes' => $this->when($canSeeConfidential, $this->confidential_notes),
             'createdAt'         => $this->created_at?->toISOString(),
+            'attachments' => $this->whenLoaded(
+                'attachments',
+                fn () => MedicalRecordEntryAttachmentResource::collection($this->attachments)
+            ),
             'updatedAt'         => $this->updated_at?->toISOString(),
         ];
     }

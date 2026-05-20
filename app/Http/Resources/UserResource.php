@@ -18,7 +18,7 @@ class UserResource extends JsonResource
             'isActive'        => (bool) $this->is_active,
             'deletedAt'       => $this->deleted_at?->toISOString(),
 
-            'role'            => $this->getRoleNames()->first(),
+            'role' => collect(['admin', 'secretary', 'doctor', 'patient'])->first(fn ($r) => $this->hasRole($r)),
 
             'roles'           => $this->getRoleNames()->values()->all(),
             'permissions'     => $this->getAllPermissions()->pluck('name')->values()->all(),

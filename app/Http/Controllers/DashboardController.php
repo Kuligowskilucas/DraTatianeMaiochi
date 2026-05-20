@@ -18,20 +18,16 @@ class DashboardController extends Controller
         $startOfWeek = Carbon::now()->startOfWeek();
         $endOfWeek   = Carbon::now()->endOfWeek();
 
-        // Admin / Secretary — visão de clínica
         if ($user->hasRole('admin') || $user->hasRole('secretary')) {
             $data = [
                 'role'                            => $user->hasRole('admin') ? 'admin' : 'secretary',
                 'patientsTotal'                   => Patient::count(),
                 'appointmentsToday'               => Appointment::whereBetween('starts_at', [$today, $tomorrow])
-                    ->where('status', '!=', 'CANCELLED')
-                    ->count(),
+                    ->where('status', '!=', 'CANCELLED')->count(),
                 'appointmentsThisWeek'            => Appointment::whereBetween('starts_at', [$startOfWeek, $endOfWeek])
-                    ->where('status', '!=', 'CANCELLED')
-                    ->count(),
+                    ->where('status', '!=', 'CANCELLED')->count(),
                 'appointmentsPendingConfirmation' => Appointment::where('status', 'SCHEDULED')
-                    ->where('starts_at', '>=', Carbon::now())
-                    ->count(),
+                    ->where('starts_at', '>=', Carbon::now())->count(),
             ];
 
             if ($user->hasRole('admin')) {
@@ -47,7 +43,6 @@ class DashboardController extends Controller
             return response()->json(['data' => $data]);
         }
 
-        // Doctor — visão do próprio
         if ($user->hasRole('doctor')) {
             $base = Appointment::where('doctor_id', $user->id);
 
@@ -56,20 +51,16 @@ class DashboardController extends Controller
                     'role'                   => 'doctor',
                     'myAppointmentsToday'    => (clone $base)
                         ->whereBetween('starts_at', [$today, $tomorrow])
-                        ->where('status', '!=', 'CANCELLED')
-                        ->count(),
+                        ->where('status', '!=', 'CANCELLED')->count(),
                     'myAppointmentsThisWeek' => (clone $base)
                         ->whereBetween('starts_at', [$startOfWeek, $endOfWeek])
-                        ->where('status', '!=', 'CANCELLED')
-                        ->count(),
+                        ->where('status', '!=', 'CANCELLED')->count(),
                     'myPatientsCount'        => (clone $base)
-                        ->distinct('patient_id')
-                        ->count('patient_id'),
+                        ->distinct('patient_id')->count('patient_id'),
                 ],
             ]);
         }
 
-        // Patient — próxima consulta + contagens próprias
         if ($user->hasRole('patient')) {
             $patient = Patient::where('user_id', $user->id)->first();
 
@@ -87,20 +78,17 @@ class DashboardController extends Controller
 
             return response()->json([
                 'data' => [
-                    'role'                   => 'patient',
-                    'nextAppointment'        => $next ? [
+                    'role'            => 'patient',
+                    'nextAppointment' => $next ? [
                         'id'         => $next->id,
                         'startsAt'   => $next->starts_at->toISOString(),
                         'doctorName' => $next->doctor?->name,
-                        'status'     => strtolower($next->status),
+                        'status'     => $next->status,
                     ] : null,
-                    'myAppointmentsUpcoming' => (clone $base)
+                    'appointmentsTotal'    => (clone $base)->count(),
+                    'appointmentsUpcoming' => (clone $base)
                         ->where('starts_at', '>=', Carbon::now())
-                        ->where('status', '!=', 'CANCELLED')
-                        ->count(),
-                    'myAppointmentsPast'     => (clone $base)
-                        ->where('starts_at', '<', Carbon::now())
-                        ->count(),
+                        ->where('status', '!=', 'CANCELLED')->count(),
                 ],
             ]);
         }

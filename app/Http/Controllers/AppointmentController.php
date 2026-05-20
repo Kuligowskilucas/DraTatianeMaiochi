@@ -41,6 +41,15 @@ class AppointmentController extends Controller
             $query->where('doctor_id', $user->id);
         }
 
+        if (
+            $user->hasRole('patient')
+            && ! $user->hasRole('admin')
+            && ! $user->hasRole('secretary')
+        ) {
+            $patient = \App\Models\Patient::where('user_id', $user->id)->first();
+            $query->where('patient_id', $patient?->id ?? 0);
+        }
+
         $limit = min((int) $request->input('limit', 10), 100);
         $items = $query->orderBy('starts_at', 'desc')->paginate($limit);
 

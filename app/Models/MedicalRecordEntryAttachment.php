@@ -43,10 +43,4 @@ class MedicalRecordEntryAttachment extends Model
     {
         return $this->belongsTo(User::class, 'uploaded_by');
     }
-
-    public function attachments()
-    {
-        return $this->hasMany(MedicalRecordEntryAttachment::class)
-            ->orderBy('created_at');
-    }
 }

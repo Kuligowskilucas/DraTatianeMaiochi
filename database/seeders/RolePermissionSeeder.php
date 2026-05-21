@@ -17,8 +17,10 @@ class RolePermissionSeeder extends Seeder
         $perms = [
             'patients.view', 'patients.create', 'patients.update', 'patients.delete',
             'appointments.view', 'appointments.create', 'appointments.update', 'appointments.delete',
+            'appointments.view_own',
             'medical_records.view', 'medical_records.create',
             'medical_records.update', 'medical_records.delete',
+            'medical_records.view_own',
             'users.view', 'users.create', 'users.update', 'users.delete',
         ];
         foreach ($perms as $p) Permission::firstOrCreate(['name' => $p]);
@@ -42,6 +44,11 @@ class RolePermissionSeeder extends Seeder
             'medical_records.view',
             'medical_records.create',
             'medical_records.update',
+        ]);
+
+        $patient->syncPermissions([
+            'appointments.view_own',
+            'medical_records.view_own',
         ]);
     }
 }

@@ -57,12 +57,26 @@ class UserController extends Controller
     {
         $data = $request->validated();
 
-        $user = User::create([
-            'name'      => $data['name'],
-            'email'     => $data['email'],
-            'password'  => $data['password'], // cast 'hashed' faz o hash
-            'is_active' => $data['is_active'] ?? true,
-        ]);
+        $user = User::withTrashed()->firstWhere('email', $data['email']);
+
+        if (! $user) {
+            $user = User::create([
+                'name'      => $data['name'],
+                'email'     => $data['email'],
+                'password'  => $data['password'], // cast 'hashed' faz o hash
+                'is_active' => $data['is_active'] ?? true,
+            ]);
+        } else {
+            $user->forceFill([
+                'name'      => $data['name'],
+                'password'  => $data['password'],
+                'is_active' => $data['is_active'] ?? true,
+            ])->save();
+
+            if ($user->trashed()) {
+                $user->restore();
+            }
+        }
 
         $user->syncRoles($data['roles']);
 
@@ -93,6 +107,10 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user)
     {
+        if ($user->trashed()) {
+            $user->restore();
+        }
+
         $user->update($request->validated());
         $user->load(['roles.permissions', 'permissions']);
         return new UserResource($user);

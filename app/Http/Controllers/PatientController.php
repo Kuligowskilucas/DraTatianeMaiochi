@@ -7,7 +7,11 @@ use App\Http\Requests\Patient\StorePatientRequest;
 use App\Http\Requests\Patient\UpdatePatientRequest;
 use App\Http\Resources\PatientResource;
 use App\Models\Patient;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
 
 class PatientController extends Controller
 {
@@ -55,10 +59,82 @@ class PatientController extends Controller
 
     public function store(StorePatientRequest $request)
     {
-        $patient = Patient::create($request->validated());
-        return (new PatientResource($patient))
-            ->response()
-            ->setStatusCode(201);
+        $data = $request->validated();
+
+        $tempPassword = null;
+
+        $patient = DB::transaction(function () use ($request, $data, &$tempPassword) {
+            $patient = null;
+
+            if (
+                $request->user()?->hasRole('secretary')
+                && blank($data['user_id'] ?? null)
+                && ! blank($data['email'] ?? null)
+            ) {
+                $tempPassword = Str::random(12);
+
+                $user = User::withTrashed()->firstWhere('email', $data['email']);
+
+                if (! $user) {
+                    $user = User::create([
+                        'name' => $data['name'],
+                        'email' => $data['email'],
+                        'password' => $tempPassword,
+                        'is_active' => true,
+                        'must_change_password' => true,
+                    ]);
+                } else {
+                    $user->forceFill([
+                        'name' => $data['name'],
+                        'password' => $tempPassword,
+                        'is_active' => true,
+                        'must_change_password' => true,
+                    ])->save();
+
+                    if ($user->trashed()) {
+                        $user->restore();
+                    }
+                }
+
+                if (! $user->hasRole('patient')) {
+                    $user->assignRole('patient');
+                }
+
+                $data['user_id'] = $user->id;
+            }
+
+            if (! blank($data['document'] ?? null)) {
+                $patient = Patient::withTrashed()
+                    ->where('document', $data['document'])
+                    ->first();
+            }
+
+            if (! $patient && ! blank($data['email'] ?? null)) {
+                $patient = Patient::withTrashed()
+                    ->where('email', $data['email'])
+                    ->first();
+            }
+
+            if ($patient) {
+                $patient->restore();
+                $patient->fill($data);
+                $patient->save();
+
+                return $patient;
+            }
+
+            return Patient::create($data);
+        });
+
+        $response = (new PatientResource($patient))->response()->setStatusCode(201);
+        // if provisioning provided a temp password, include it in top-level meta
+        if (! empty($tempPassword)) {
+            $response->setData(array_merge($response->getData(true), [
+                'tempPassword' => $tempPassword,
+            ]));
+        }
+
+        return $response;
     }
 
     public function show(Patient $patient)

@@ -58,7 +58,11 @@ class AuthController extends Controller
         $user = $request->user();
         $currentTokenId = $request->user()->currentAccessToken()->id;
 
-        $user->update(['password' => $request->validated()['password']]);
+        $user->update([
+            'password' => $request->validated()['password'],
+            'must_change_password' => false,
+            'is_active' => true,
+        ]);
 
         $user->tokens()->where('id', '!=', $currentTokenId)->delete();
 

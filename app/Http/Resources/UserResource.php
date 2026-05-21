@@ -23,6 +23,8 @@ class UserResource extends JsonResource
             'roles'           => $this->getRoleNames()->values()->all(),
             'permissions'     => $this->getAllPermissions()->pluck('name')->values()->all(),
 
+            'mustChangePassword' => (bool) ($this->must_change_password ?? false),
+
             'createdAt'       => $this->created_at?->toISOString(),
             'updatedAt'       => $this->updated_at?->toISOString(),
         ];

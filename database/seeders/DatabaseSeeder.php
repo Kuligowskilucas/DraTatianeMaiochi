@@ -11,11 +11,16 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionSeeder::class, 
             AdminUserSeeder::class,
-            DoctorUserSeeder::class,
-            SecretaryUserSeeder::class,
-            PatientsSeeder::class,
-            AppointmentsSeeder::class,
-            MedicalRecordsSeeder::class,
         ]);
+    
+        if (app()->environment('local', 'staging')) {
+            $this->call([
+                DoctorUserSeeder::class,
+                SecretaryUserSeeder::class,
+                PatientsSeeder::class,
+                AppointmentsSeeder::class,
+                MedicalRecordsSeeder::class,
+            ]);
+        }
     }
 }

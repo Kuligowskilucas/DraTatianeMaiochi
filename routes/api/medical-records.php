@@ -24,7 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
             ->name('store');
     
         Route::get('/{entry}', [MedicalRecordEntryController::class, 'show'])
-            ->middleware('permission:medical_records.view')
+            ->middleware('permission:medical_records.view|medical_records.view_own')
             ->name('show');
     
         Route::get('/{entry}/activity', [MedicalRecordEntryController::class, 'activity'])
@@ -45,7 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
             ->name('medicalRecordEntries.attachments.')
             ->group(function () {
                 Route::get('/', [AttachmentController::class, 'index'])
-                    ->middleware('permission:medical_records.view')
+                    ->middleware('permission:medical_records.view|medical_records.view_own')
                     ->name('index');
 
                 Route::post('/', [AttachmentController::class, 'store'])
@@ -57,7 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
             ->name('medicalRecordEntryAttachments.')
             ->group(function () {
                 Route::get('/{attachment}/download', [AttachmentController::class, 'download'])
-                    ->middleware('permission:medical_records.view')
+                    ->middleware('permission:medical_records.view|medical_records.view_own')
                     ->name('download');
 
                 Route::delete('/{attachment}', [AttachmentController::class, 'destroy'])

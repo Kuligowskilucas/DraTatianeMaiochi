@@ -13,10 +13,10 @@ class AdminUserSeeder extends Seeder
         Role::firstOrCreate(['name' => 'admin']);
 
         $user = User::firstOrCreate(
-            ['email' => 'admin@teste'],
+            ['email' => 'admin@criacao.com'],
             [
                 'name'      => 'admin',
-                'password'  => 'admin123',
+                'password'  => 'adminsiteclinica3011',
                 'is_active' => true,
             ]
         );
